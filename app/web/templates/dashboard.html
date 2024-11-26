@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="portfolio-summary">
+    <h2>Portfolio Summary</h2>
+    <p>Initial Investment: ${{ "%.2f"|format(portfolio.initial_investment) }}</p>
+    <p>Current Value: ${{ "%.2f"|format(portfolio.current_value) }}</p>
+    {% if portfolio.current_value and portfolio.initial_investment %}
+        {% set profit_loss = portfolio.current_value - portfolio.initial_investment %}
+        {% set profit_loss_percent = ((portfolio.current_value / portfolio.initial_investment) - 1) * 100 %}
+        <p>Profit/Loss: 
+            <span class="profit-loss {{ 'profit' if profit_loss >= 0 else 'loss' }}">
+                ${{ "%.2f"|format(profit_loss) }} 
+                ({{ "%.1f"|format(profit_loss_percent) }}%)
+            </span>
+        </p>
+    {% endif %}
+</div>
+
+<div class="holdings">
+    <h2>Holdings</h2>
+    <table>
+        <tr>
+            <th>Coin</th>
+            <th>Investment</th>
+            <th>Coins</th>
+            <th>Current Price</th>
+            <th>Current Value</th>
+            <th>Profit/Loss</th>
+        </tr>
+        {% for holding in portfolio.holdings %}
+        <tr>
+            <td>{{ holding.coin_id|title }}</td>
+            <td>${{ "%.2f"|format(holding.amount) }}</td>
+            <td>{{ "%.6f"|format(holding.coins) }}</td>
+            <td>${{ "%.2f"|format(holding.current_price) }}</td>
+            <td>${{ "%.2f"|format(holding.current_value) }}</td>
+            {% set profit_loss = holding.current_value - holding.amount %}
+            {% set profit_loss_percent = ((holding.current_value / holding.amount) - 1) * 100 if holding.amount > 0 else 0 %}
+            <td>
+                <span class="profit-loss {{ 'profit' if profit_loss >= 0 else 'loss' }}">
+                    ${{ "%.2f"|format(profit_loss) }}
+                    ({{ "%.1f"|format(profit_loss_percent) }}%)
+                </span>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<div class="charts">
+    <div id="eth-price-chart"></div>
+    <div id="altcoin-price-chart"></div>
+    <div id="profit-loss-chart"></div>
+</div>
+
+<style>
+.profit-loss {
+    font-weight: bold;
+}
+
+.profit-loss.profit {
+    color: #28a745;  /* Green */
+}
+
+.profit-loss.loss {
+    color: #dc3545;  /* Red */
+}
+</style>
+
+{% block scripts %}
+<script>
+function initCharts() {
+    const priceData = {{ price_history|tojson }};
+    console.log('Initializing charts with', priceData.length, 'total price points');
+    
+    // Group data by coin
+    const groupedData = {};
+    priceData.forEach(point => {
+        if (!groupedData[point.coin_id]) {
+            groupedData[point.coin_id] = {
+                x: [],
+                y: [],
+                initial_price: null
+            };
+        }
+        groupedData[point.coin_id].x.push(new Date(point.timestamp));
+        groupedData[point.coin_id].y.push(point.price);
+        if (groupedData[point.coin_id].initial_price === null) {
+            groupedData[point.coin_id].initial_price = point.price;
+        }
+    });
+
+    console.log('Grouped data:', Object.keys(groupedData));
+    
+    // Common layout settings
+    const commonLayout = {
+        showlegend: true,
+        legend: {
+            x: 0,
+            y: 1
+        },
+        hovermode: 'x unified',
+        xaxis: { 
+            title: 'Date',
+            type: 'date',
+            rangeslider: {visible: false}
+        }
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false
+    };
+
+    // Create ETH chart
+    if (groupedData['ethereum']) {
+        const ethTrace = {
+            x: groupedData['ethereum'].x,
+            y: groupedData['ethereum'].y,
+            name: 'Ethereum',
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                color: '#627EEA',
+                width: 2
+            }
+        };
+
+        const ethLayout = {
+            ...commonLayout,
+            title: 'Ethereum Price History (7 Days)',
+            yaxis: { 
+                title: 'Price (USD)',
+                tickprefix: '$',
+                rangemode: 'tozero'
+            }
+        };
+
+        console.log('Plotting ETH chart with', ethTrace.x.length, 'points');
+        Plotly.newPlot('eth-price-chart', [ethTrace], ethLayout, config);
+    }
+
+    // Create altcoin chart
+    const altcoinTraces = Object.entries(groupedData)
+        .filter(([coinId]) => coinId !== 'ethereum')
+        .map(([coinId, data]) => ({
+            x: data.x,
+            y: data.y,
+            name: coinId.charAt(0).toUpperCase() + coinId.slice(1).replace(/-/g, ' '),
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                width: 2
+            }
+        }));
+
+    if (altcoinTraces.length > 0) {
+        const altcoinLayout = {
+            ...commonLayout,
+            title: 'Altcoin Price History (7 Days)',
+            yaxis: { 
+                title: 'Price (USD)',
+                tickprefix: '$',
+                rangemode: 'tozero'
+            }
+        };
+
+        console.log('Plotting altcoin chart with', altcoinTraces.length, 'coins');
+        Plotly.newPlot('altcoin-price-chart', altcoinTraces, altcoinLayout, config);
+    }
+
+    // Create profit/loss chart
+    const profitLossTraces = Object.entries(groupedData).map(([coinId, data]) => {
+        const percentChange = data.y.map(price => 
+            ((price - data.initial_price) / data.initial_price) * 100
+        );
+        return {
+            x: data.x,
+            y: percentChange,
+            name: coinId.charAt(0).toUpperCase() + coinId.slice(1).replace(/-/g, ' '),
+            type: 'scatter',
+            mode: 'lines',
+            line: {
+                width: 2
+            }
+        };
+    });
+
+    if (profitLossTraces.length > 0) {
+        const profitLossLayout = {
+            ...commonLayout,
+            title: 'Profit/Loss Percentage (7 Days)',
+            yaxis: { 
+                title: 'Change (%)',
+                ticksuffix: '%',
+                zeroline: true,
+                zerolinecolor: '#666',
+                zerolinewidth: 1,
+                gridcolor: '#eee'
+            }
+        };
+
+        console.log('Plotting profit/loss chart with', profitLossTraces.length, 'coins');
+        Plotly.newPlot('profit-loss-chart', profitLossTraces, profitLossLayout, config);
+    }
+}
+
+// Initialize charts when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Document ready, initializing charts...');
+    initCharts();
+});
+</script>
+{% endblock %}
+{% endblock %}

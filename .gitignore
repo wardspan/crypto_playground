@@ -1,0 +1,110 @@
+# Compiled files
+*.class
+*.pyc
+*.so
+*.o
+*.a
+*.dll
+*.exe
+
+# IDE files
+.idea
+.vscode
+
+# Build files
+build
+dist
+*.egg-info
+
+# Test files
+tests
+test
+
+# Logs
+*.log
+*.txt
+
+# Configuration files
+*.ini
+*.cfg
+*.json
+*.yaml
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Database files
+*.db
+*.sqlite
+
+# Cache files
+*.cache
+*.swp
+*.swo
+
+# Dependency files
+*.lock
+*.yarn-integrity
+
+#Secret files
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+
+# Security files
+*.key
+*.pem
+*.cer
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+$Recycle.Bin/
+$Recycle.Bin
+$RECYCLE.BIN
+$RECYCLE.BIN/
+
+# Node.js files
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log*
+
+# Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+
+# Java files
+*.class
+*.jar
+*.war
+*.ear
+*.hprof
+*.hs_err_pid*
+
+
+# Docker files
+#Dockerfile
+#docker-compose.yml
+
+# Readme files
+#README.md
+

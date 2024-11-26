@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="loading-container">
+    <h2>Initializing Portfolio Data</h2>
+    <div class="loading-spinner"></div>
+    <p class="status">{{ status.message }}</p>
+</div>
+
+<style>
+.loading-container {
+    text-align: center;
+    padding: 40px;
+    margin: 20px auto;
+    max-width: 600px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.status {
+    font-size: 1.1em;
+    color: #666;
+    margin-top: 20px;
+}
+</style>
+
+<script>
+// Check status every 3 seconds
+function checkStatus() {
+    fetch('/status')
+        .then(response => response.json())
+        .then(data => {
+            document.querySelector('.status').textContent = data.message;
+            if (data.ready) {
+                window.location.href = '/';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking status:', error);
+        });
+}
+
+// Initial check
+checkStatus();
+
+// Set up periodic checks
+setInterval(checkStatus, 3000);
+</script>
+{% endblock %} 
